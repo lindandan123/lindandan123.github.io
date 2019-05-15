@@ -4,6 +4,33 @@
   
     
     <entry>
+      <title>浏览器的回流和重绘</title>
+      <link href="/2019/05/15/%E6%B5%8F%E8%A7%88%E5%99%A8%E7%9A%84%E5%9B%9E%E6%B5%81%E5%92%8C%E9%87%8D%E7%BB%98/"/>
+      <url>/2019/05/15/%E6%B5%8F%E8%A7%88%E5%99%A8%E7%9A%84%E5%9B%9E%E6%B5%81%E5%92%8C%E9%87%8D%E7%BB%98/</url>
+      
+        <content type="html"><![CDATA[<p>首先，我们来探讨一个问题：</p><p><strong><em>“css 会影响 javascrip 执行时间导致 javascript 脚本变慢”</em></strong></p><p>浏览器的加载原则：按照自上而下的顺序加载，一般，详细点的html加载流程为：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1、输入网址浏览器向服务器发送请求获得html文件。 </span><br><span class="line">2、浏览器载入html代码，自上而下开始解析。 </span><br><span class="line">3、发现引入的CSS文件，加载这个CSS文件。 </span><br><span class="line">4、浏览器加载body中的元素，并结合CSS文件对页面进行渲染， </span><br><span class="line">5、当浏览器遇到需要加载资源的标签时（img、video等），不会等待资源加载完成，而是继续向后渲染。 </span><br><span class="line">6、当资源加载完毕时，浏览器会重新渲染这部分。 </span><br><span class="line">7、浏览器遇到JS代码即加载，通常来说，如果script标签在某元素前面，标签中包含window.onload，则在Render树渲染完加载JS代码。 </span><br><span class="line">8、针对JS中对某些元素节点有特殊操作，则重新渲染这部分节点。</span><br></pre></td></tr></table></figure><p>可以看出，一般浏览器会根据html渲染出DOM树，并通过css来共同生成render tree，而js作为整体载入，需要等render tree创建完成才开始加载，所以当进行css加载的时候页面的样式频繁改动的时候ui线程就会持续渲染，造成js加载卡顿。</p><p>所以，回流和重绘究竟是什么呢</p><p><strong><em>回流必定触发重绘，而重绘不一定触发回流</em></strong></p><h5 id="回流"><a href="#回流" class="headerlink" title="回流"></a>回流</h5><p>当render tree 的一部分或全部的元素因改变了自身的宽高，布局，显示或隐藏，或者元素内部的文字结构发生变化 导致需要重新构建页面的时候，回流就产生了</p><h6 id="会触发回流的css属性"><a href="#会触发回流的css属性" class="headerlink" title="会触发回流的css属性"></a>会触发回流的css属性</h6><p><img src="/images/pasted-1.png" alt="upload successful"><br>除上图展示的会产生回流的属性，同时，触发伪类（:hover）、浏览器尺寸大小发生变化、以及一些常用的方法：</p><ul><li><p>clientWidth、clientHeight、clientTop、clientLeft</p></li><li><p>offsetWidth、offsetHeight、offsetTop、offsetLeft</p></li><li><p>scrollWidth、scrollHeight、scrollTop、scrollLeft</p></li><li><p>scrollIntoView()、scrollIntoViewIfNeeded()</p></li><li><p>getComputedStyle()</p></li><li><p>getBoundingClientRect()</p></li><li><p>scrollTo()</p></li></ul><p>都会导致回流</p><h6 id="如何避免发生回流"><a href="#如何避免发生回流" class="headerlink" title="如何避免发生回流"></a>如何避免发生回流</h6><ol><li>不使用会导致回流发生的css属性</li><li>新建立一个图层，限制回流和重绘的范围</li></ol><p>显然，方案一是行不通的，那我们来说说方案二：</p><p>css有一个重要的方案，叫“划分图层”：</p><p>在页面加载完dom之后，浏览器会根据自身制定的一些特殊css 属性对页面进行划分为一个个图层。例如：一些有着 position: absolute 属性的元素他们会被浏览器归纳到一个图层中，而另外一些 position: fixed 的元素也会被浏览器归纳到另外一个图层中，还有一些例如：transform: translateZ(0)….  这些属性都是视浏览器厂商制定的</p><p>图层虽好，但不要滥用哦～～～</p><p>所以，创建一个新的图层，需要哪些条件呢？</p><p>最常见的，position定位、浮动、3D、2D转换、opacity都会创建一个新的图层</p><p>所以，我们可以从以下方面来避免回流：</p><p><strong>css：</strong></p><ul><li><p>避免使用table布局。</p></li><li><p>尽可能在DOM树的最末端改变class。</p></li><li><p>避免设置多层内联样式。</p></li><li><p>将动画效果应用到position属性为absolute或fixed的元素上。</p></li><li><p>避免使用CSS表达式（例如：calc()）。</p></li><li><p>opacity替代visibility</p></li></ul><p><strong>javascript：</strong></p><ul><li><p>避免频繁操作样式，最好一次性重写style属性，或者将样式列表定义为class并一次性更改class属性。</p></li><li><p>避免频繁操作DOM，创建一个documentFragment，在它上面应用所有DOM操作，最后再把它添加到文档中。</p></li><li><p>也可以先为元素设置display: none，操作结束后再把它显示出来。因为在display属性为none的元素上进行的DOM操作不会引发回流和重绘。</p></li><li><p>避免频繁读取会引发回流/重绘的属性，如果确实需要多次使用，就用一个变量缓存起来。</p></li><li><p>对具有复杂动画的元素使用绝对定位，使它脱离文档流，否则会引起父元素及后续元素频繁回流。</p></li></ul><hr><h5 id="重绘"><a href="#重绘" class="headerlink" title="重绘"></a>重绘</h5><p>当一个元素自身的宽高，布局，及显示或隐藏没有改变，而只是改变了元素的外观风格的时候，就会产生重绘。例如你改变了元素的background-color…</p><h6 id="会触发重绘的css属性"><a href="#会触发重绘的css属性" class="headerlink" title="会触发重绘的css属性"></a>会触发重绘的css属性</h6><p><img src="/images/pasted-2.png" alt="upload successful"></p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 前端 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> css </tag>
+            
+            <tag> web前端性能 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>深入理解JavaScript的arguments</title>
       <link href="/2019/04/16/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3JavaScript%E7%9A%84arguments/"/>
       <url>/2019/04/16/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3JavaScript%E7%9A%84arguments/</url>
