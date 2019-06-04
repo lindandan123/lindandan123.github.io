@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+
+
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>
+    Chrome Devtools Performance性能分析 | 林蛋蛋的分享博客
+  </title>
+  <meta name="description" content="想写什么写什么">
+  
+  <meta name="keywords" content="
+  调试,Chrome,Devtools
+  ">
+  
+  <meta name="author" content="Emma Lin">
+
+  <meta http-equiv="Cache-Control" content="no-transform">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="theme-color" content="#1e2327">
+  <link rel="apple-touch-icon" href="https://github.githubassets.com/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://github.githubassets.com/apple-touch-icon-180x180.png">
+
+  <link rel="icon" type="image/x-icon" href="https://github.githubassets.com/favicon.ico">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  
+
+  
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/vue/1.0.25-csp/vue.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.11.2/moment.min.js"></script>
+</head>
+
+<body id="replica-app">
+
+<nav class="navbar-wrapper">
+  <div class="navbar">
+    <div class="container clearfix">
+      <a href="/" class="navbar-logo"><i class="fa fa-github"></i></a>
+
+      <div class="navbar-search float-left desktop-only">
+        <div class="navbar-search-form">
+          <label for="gsc-i-id1">This website</label>
+          <div id="google-search">
+            <gcse:search></gcse:search>
+          </div>
+        </div>
+      </div>
+
+      <ul class="navbar-nav float-left">
+        
+        <li><a href="/archives">Archives</a></li>
+        
+        
+        <li><a href="/categories">Categories</a></li>
+        
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        
+        <li class="desktop-only"><a href="/atom.xml" target="_blank">RSS</a></li>
+        
+      </ul>
+
+      <ul class="navbar-nav user-nav float-right desktop-only">
+        <li class="user-nav-notification">
+          <a><span class="user-nav-unread"></span><i class="fa fa-bell"></i></a>
+        </li>
+        <li>
+          <a><i class="fa fa-plus"></i> <i class="fa fa-caret-down"></i></a>
+        </li>
+        <li class="user-nav-logo">
+          <a><img src="https://octodex.github.com/images/baracktocat.jpg"> <i class="fa fa-caret-down"></i></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="main-container">
+  <header class="header-wrapper desktop-only">
+  <div class="container header-site-detail">
+    <ul class="header-toolbar">
+      <li class="clearfix">
+        <a href="/archives" class="header-toolbar-left"><i class="fa fa-file-text"></i> Posts </a>
+        <a href="/archives" class="header-toolbar-right"> 5 </a>
+      </li>
+      <li>
+        <a href="/tags" class="header-toolbar-left"><i class="fa fa-tags"></i> Tags </a>
+        <a href="/tags" class="header-toolbar-right"> 8 </a>
+      </li>
+      <li>
+        <a href="/categories" class="header-toolbar-left"><i class="fa fa-folder-open"></i> Categories </a>
+        <a href="/categories" class="header-toolbar-right"> 2 </a>
+      </li>
+    </ul>
+    <h2 class="header-title">
+      <i class="fa fa-book text-muted"></i>
+      <a href="/">林蛋蛋的分享博客</a>
+      
+      
+    </h2>
+  </div>
+
+  <div class="container">
+    <div class="header-tab-wrapper clearfix">
+      <span class="header-tab header-tab-selected"><i class="fa fa-thumbs-o-up"></i> Like</span>
+      <span class="header-tab"><i class="fa fa-share-alt"></i> Share</span>
+      <span class="header-tab"><i class="fa fa-comments-o"></i> Discussion</span>
+      <span class="header-tab"><i class="fa fa-bookmark-o"></i> Bookmark </span>
+      <span class="header-tab"><i class="fa fa-smile-o"></i> Smile <i class="fa fa-caret-down"></i></span>
+    </div>
+  </div>
+</header>
+
+
+<div class="post-container container">
+  <h3>
+    <i class="fa fa-user-o"></i>
+    Emma Lin
+
+    <span class="post-date float-right" title="{{moment(1559107740000).format('MMM DD, YYYY, h:mm:ss A')}}">
+      <i class="fa fa-pencil-square-o"></i>
+      {{moment(1559107740000).fromNow()}}
+    </span>
+  </h3>
+
+  <article class="post-content">
+    <h1>Chrome Devtools Performance性能分析</h1>
+    <p>运行时性能表现（runtime performance）指的是当你的页面在浏览器运行时的性能表现，而不是在下载页面的时候的表现。这篇指南将会告诉你怎么用Chrome DevTools Performance功能去分析运行时性能表现。在RAIL性能评估模型下，你可以在这篇指南中可以学到怎么去用这个performance功能去分析Response, Animation, 以及 Idle 这三个性能指标。</p>
+<h3 id="让我们开始吧"><a href="#让我们开始吧" class="headerlink" title="让我们开始吧"></a>让我们开始吧</h3><hr>
+<p>在整篇文章中，我们将以一个现有的<a href="https://googlechrome.github.io/devtools-samples/jank/ “demo”" target="_blank" rel="noopener">在线demo</a>为例，学会怎么去分析，从而找到性能瓶颈。</p>
+<ol>
+<li>打开Chrome 匿名模式，Ctrl+Shift+N（Windows，Linux等）⌘-Shift-N（Mac），匿名模式可以让Chrome在一个相对干净的环境下运行，避免如Chrome插件对运行性能带来的影响。</li>
+<li>在匿名模式下打开<a href="https://googlechrome.github.io/devtools-samples/jank/" title="demo" target="_blank" rel="noopener">demo</a>，打开Chrome Devtools，Control-shift-I（windows），⌘-Opiton-I（Mac）。</li>
+<li>点击Devtools 工具栏 Performance 一项。</li>
+</ol>
+<p><img src="/images/pasted-3.png" alt="upload successful"></p>
+<h3 id="设置DEMO"><a href="#设置DEMO" class="headerlink" title="设置DEMO"></a>设置DEMO</h3><hr>
+<p>为了使得这个DEMO有相对统一的运行表现（不同的读者，机器的性能千差万别）。这个DEMO提供了自定义功能，用来确保这个DEMO的统一表现。</p>
+<ol>
+<li><p>一直点击 Add 10 这个按钮直到你能很明显看到蓝色小方块移动变慢，在性能比较好的机器上，大概要点击20次左右。</p>
+</li>
+<li><p>点击 Optimize按钮，你会发现蓝色小方块会变的很快而且动画变得平滑。</p>
+</li>
+<li><p>点击 un-optimize 按钮，蓝色小方块又会变成之前的模样。</p>
+</li>
+</ol>
+<p><img src="/images/pasted-4.png" alt="upload successful"></p>
+<h3 id="开始记录"><a href="#开始记录" class="headerlink" title="开始记录"></a>开始记录</h3><hr>
+<p>点击面板中的Record按钮开始录制</p>
+<p><img src="/images/pasted-5.png" alt="upload successful"></p>
+<p>等上几分钟</p>
+<p><img src="/images/pasted-6.png" alt="upload successful"></p>
+<p>然后点击stop按钮，停止录制，在Devtool中会显示性能报告。</p>
+<p><img src="/images/pasted-7.png" alt="upload successful"></p>
+<h3 id="分析报告"><a href="#分析报告" class="headerlink" title="分析报告"></a>分析报告</h3><hr>
+<p>FPS：页面每秒帧数，主要用来分析动画的性能，FPS&gt;=60时性能比较好，FPS&lt;24时就会感觉页面有卡顿。观察FPS图表这一栏，如果有红色的长条，说明这些帧存在严重的性能问题。一般来说，红色长条越高，性能越差。相反，若显示的时绿色长条，绿色长条越高，性能越好。</p>
+<p>CPU：在FPS图表下方，是CPU图表。CPU图表中的各种颜色与下方Summary图表的颜色是一一对应的，CPU图表中的各种颜色代表着在这个时间段内，CPU在各种处理上所花费的时间。若你发现CPU在某一处理上花费的时间较多，那么可能是找到性能瓶颈的线索。</p>
+<p>NET：网络资源请求信息。以不同颜色的条状表示不同的资源。黄色表示是script文件，蓝色表示是html文件，紫色表示是css文件，绿色表示是媒体文件，灰色表示各种其他文件。具体请期待下回分解<a href>chrome之Network</a>。</p>
+<p>Frames: 查看特定帧的FPS。把鼠标放在Frames的绿色长条上，可以看到某一帧的FPS具体是多少。</p>
+<p><img src="/images/pasted-8.png" alt="upload successful"></p>
+<p>可以看到该帧下fps=20，已经小于24了。点击Frames上的每一个绿色小块，在summary下方会出现更加详细的数据。</p>
+<p>*这里有一个小tips：</p>
+<ol>
+<li>按下 Command+Shift+P（Mac）或者 Control+Shift+P(Windows, Linux) 打开命令菜单</li>
+<li>输入Rendering，点选Show Rendering</li>
+</ol>
+<p>点开有惊喜哦～<br>*</p>
+<h3 id="找到性能瓶颈"><a href="#找到性能瓶颈" class="headerlink" title="找到性能瓶颈"></a>找到性能瓶颈</h3><hr>
+<p>此时我们已经知道网站存在性能问题了，那怎么去定位到性能瓶颈呢？</p>
+<h6 id="了解Summary"><a href="#了解Summary" class="headerlink" title="了解Summary"></a>了解Summary</h6><p><img src="/images/pasted-9.png" alt="upload successful"></p>
+<p>对性能进行录制完成的时候，会默认在底部展示一个Summary摘要，显示全局的信息。色块越多，耗时越长。观察上图，主要耗时在scripting，rendering，painting上。那我们就可以从这三方面入手去找到性能瓶颈。</p>
+<h6 id="了解main"><a href="#了解main" class="headerlink" title="了解main"></a>了解main</h6><p><img src="/images/pasted-10.png" alt="upload successful"></p>
+<p>展开Main部分，DevTools将显示主线程上的随着时间推移的活动火焰图。x轴代表随时间推移的记录，每个长条代表一个事件，长条越宽，代表这个事件花费的时间越长。y轴代表调用堆栈，当你看到堆叠在一起的事件时，意味着上层事件发起了下层事件。</p>
+<h6 id="识别问题，红色三角号"><a href="#识别问题，红色三角号" class="headerlink" title="识别问题，红色三角号"></a>识别问题，红色三角号</h6><p>在main中的每一块事件上，如果出现了红色三角形，说明这个事件是存在问题的。<br>点击任意带有红色三角形的块，summary中会出现数据：</p>
+<p><img src="/images/pasted-11.png" alt="upload successful"></p>
+<p>可以看到warning是给我们提示的性能问题：重复处理程序耗时64.82ms。</p>
+<h6 id="定位到代码"><a href="#定位到代码" class="headerlink" title="定位到代码"></a>定位到代码</h6><p>点击上图summary中app.js:95,就能跳转到有问题的代码。</p>
+<p><img src="/images/pasted-12.png" alt="upload successful"></p>
+<h6 id="进一步寻找问题"><a href="#进一步寻找问题" class="headerlink" title="进一步寻找问题"></a>进一步寻找问题</h6><p>上面通过summary图表分析我们得出在rendering上花费的时间也是比较多的，我们在main中点开一个紫色的条看看：</p>
+<p><img src="/images/pasted-13.png" alt="upload successful"></p>
+<p>查看warning：强制回流可能是性能瓶颈。</p>
+<p>点开代码：</p>
+<p><img src="/images/pasted-14.png" alt="upload successful"></p>
+<p>此代码的问题在于，在每个动画帧中，它会更改每个方块的样式，然后查询页面上每个方块的位置。由于样式发生了变化，浏览器不知道每个方块的位置是否发生了变化，因此必须重新布局方块以计算其位置。</p>
+
+  </article>
+</div>
+
+
+    
+
+
+
+
+</div>
+
+<div class="footer-wrapper container">
+  <footer class="footer clearfix">
+    <div class="clearfix">
+    <a href="http://lindandan123.github.io" class="footer-logo">
+      <i class="fa fa-github"></i>
+    </a>
+    <ul class="footer-social-link">
+      <li>© 2019 Emma Lin</li>
+      <li><a href="http://lindandan123.github.io">Home</a></li>
+      
+    </ul>
+    <div class="footer-theme-info">
+      Theme <a href="//github.com/sabrinaluo/hexo-theme-replica">Replica</a>
+      by <a href="//github.com/sabrinaluo">Hiitea</a> ❤ Powered by Hexo
+    </div>
+    </div>
+    
+  </footer>
+</div>
+
+
+
+
+<script src="/js/main.js"></script>
+
+</body>
+</html>
